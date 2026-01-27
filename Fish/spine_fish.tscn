@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://c4bg5cfkp1ann"]
+
+[ext_resource type="PackedScene" uid="uid://cvd58pqbrj4fl" path="res://assets/SpineFish.glb" id="1_6lgya"]
+
+[node name="SpineFish" type="Node3D"]
+
+[node name="SpineFish" parent="." instance=ExtResource("1_6lgya")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.055, -0.1)
