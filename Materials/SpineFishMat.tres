@@ -1,0 +1,13 @@
+[gd_resource type="StandardMaterial3D" load_steps=3 format=3 uid="uid://bwich404suoqo"]
+
+[ext_resource type="Texture2D" uid="uid://ptuxsnlrk2jr" path="res://assets/SpineFish_spine-fish-color.jpg" id="1_ss1mo"]
+[ext_resource type="Texture2D" uid="uid://cs5os3wjmn8gi" path="res://assets/SpineFish_spine-fish-normal.jpg" id="2_nduax"]
+
+[resource]
+resource_name = "Material"
+cull_mode = 2
+albedo_texture = ExtResource("1_ss1mo")
+roughness = 0.5
+normal_enabled = true
+normal_scale = 1.4
+normal_texture = ExtResource("2_nduax")
