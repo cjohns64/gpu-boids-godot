@@ -24,8 +24,45 @@ uniform vec3 uv1_offset;
 uniform vec3 uv2_scale;
 uniform vec3 uv2_offset;
 
+uniform vec3 u1 = vec3(0, 0.707, 0.707);
+
 void vertex() {
-	VERTEX.y += 0.15 * cos(VERTEX.x * 2.0) * sin(VERTEX.z * 6.0);
+	vec3 disp = vec3(0, 0, 0);
+	vec3 yrot = vec3(0, 0, 0);
+	vec3 xsid = vec3(0, 0, 0);
+	vec3 roll = vec3(0, 0, 0);
+	vec3 yoff = vec3(0, 0, 0);
+	
+	float T = 0.5 * sin(TIME * 5.5);
+	//disp.x = VERTEX.x * (u1.x * u1.x * (1.0 - cos(T)) + cos(T)) 
+			//+ VERTEX.y * (u1.x * u1.y * (1.0 - cos(T)) - u1.z * sin(T))
+			//+ VERTEX.z * (u1.x * u1.z * (1.0 - cos(T)) + u1.y * sin(T));
+	//disp.y = VERTEX.x * (u1.x * u1.y * (1.0 - cos(T)) + u1.z * sin(T))
+			//+ VERTEX.y * (u1.y * u1.y * (1.0 - cos(T)) + cos(T))
+			//+ VERTEX.z * (u1.y * u1.z * (1.0 - cos(T)) - u1.x * sin(T));
+	//disp.z = VERTEX.x * (u1.x * u1.y * (1.0 - cos(T)) - u1.y * sin(T))
+			//+ VERTEX.y * (u1.y * u1.z * (1.0 - cos(T)) + u1.x * sin(T))
+			//+ VERTEX.z * (u1.z * u1.z * (1.0 - cos(T)) + cos(T));
+	// y-axis rotation 
+	yrot.x = VERTEX.x * (cos(T)) + VERTEX.z * (sin(T));
+	yrot.y = VERTEX.y;
+	yrot.z = VERTEX.z * cos(T) - VERTEX.x * sin(T);
+    // side to side motion
+	xsid.x = VERTEX.x + 0.25 * sin(T);
+	xsid.y = VERTEX.y;
+	xsid.z = VERTEX.z;
+    // roll rotation f(offset from pivot)
+	float offset_roll = 1.0 + 3.0 * sqrt(VERTEX.x*VERTEX.x + VERTEX.y*VERTEX.y);
+	roll.x = VERTEX.x * cos(T*offset_roll) - VERTEX.y * sin(T*offset_roll);
+	roll.y = VERTEX.x * sin(T*offset_roll) + VERTEX.y * cos(T*offset_roll);
+	roll.z = VERTEX.z;
+    // y-axis rotation with f(offset from pivot)
+	float offset_yrot = 1.0 + 4.0 * sqrt(VERTEX.x*VERTEX.x + VERTEX.z*VERTEX.z);
+	yoff.x = VERTEX.x * (cos(T*offset_yrot)) + VERTEX.z * (sin(T*offset_yrot));
+	yoff.y = VERTEX.y;
+	yoff.z = VERTEX.z * cos(T*offset_yrot) - VERTEX.x * sin(T*offset_yrot);
+    // rate controlled by acceleration
+	VERTEX = yrot + 2.0 * xsid + 2.0 * roll + 1.5*yoff;
 	UV = UV * uv1_scale.xy + uv1_offset.xy;
 }
 
