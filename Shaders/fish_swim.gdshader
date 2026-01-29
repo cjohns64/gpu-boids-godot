@@ -32,9 +32,11 @@ void vertex() {
 	vec3 xsid = vec3(0, 0, 0);
 	vec3 roll = vec3(0, 0, 0);
 	vec3 yoff = vec3(0, 0, 0);
-	
-	float T = 0.5 * sin(TIME * 5.5);
-	//disp.x = VERTEX.x * (u1.x * u1.x * (1.0 - cos(T)) + cos(T)) 
+	vec3 swav = vec3(0, 0, 0);
+
+	float T = TIME * 2.0; // slow swim: 2.0 -> fast swim: 20.0
+	// general equation for a rotation by an angle (T) about a pivot (u1)
+	//disp.x = VERTEX.x * (u1.x * u1.x * (1.0 - cos(T)) + cos(T))
 			//+ VERTEX.y * (u1.x * u1.y * (1.0 - cos(T)) - u1.z * sin(T))
 			//+ VERTEX.z * (u1.x * u1.z * (1.0 - cos(T)) + u1.y * sin(T));
 	//disp.y = VERTEX.x * (u1.x * u1.y * (1.0 - cos(T)) + u1.z * sin(T))
@@ -43,26 +45,29 @@ void vertex() {
 	//disp.z = VERTEX.x * (u1.x * u1.y * (1.0 - cos(T)) - u1.y * sin(T))
 			//+ VERTEX.y * (u1.y * u1.z * (1.0 - cos(T)) + u1.x * sin(T))
 			//+ VERTEX.z * (u1.z * u1.z * (1.0 - cos(T)) + cos(T));
-	// y-axis rotation 
-	yrot.x = VERTEX.x * (cos(T)) + VERTEX.z * (sin(T));
+	// y-axis rotation
+	yrot.x = VERTEX.x * (cos(0.5*sin(T))) + VERTEX.z * (sin(0.5*sin(T)));
 	yrot.y = VERTEX.y;
-	yrot.z = VERTEX.z * cos(T) - VERTEX.x * sin(T);
+	yrot.z = VERTEX.z * cos(0.5*sin(T)) - VERTEX.x * sin(0.5*sin(T));
     // side to side motion
 	xsid.x = VERTEX.x + 0.25 * sin(T);
 	xsid.y = VERTEX.y;
 	xsid.z = VERTEX.z;
     // roll rotation f(offset from pivot)
-	float offset_roll = 1.0 + 3.0 * sqrt(VERTEX.x*VERTEX.x + VERTEX.y*VERTEX.y);
-	roll.x = VERTEX.x * cos(T*offset_roll) - VERTEX.y * sin(T*offset_roll);
-	roll.y = VERTEX.x * sin(T*offset_roll) + VERTEX.y * cos(T*offset_roll);
+	float offset_roll = 0.5 * sin(T) * (1.0 + 5.0 * (VERTEX.x*VERTEX.x + VERTEX.y*VERTEX.y));
+	roll.x = VERTEX.x * cos(offset_roll) - VERTEX.y * sin(offset_roll);
+	roll.y = VERTEX.x * sin(offset_roll) + VERTEX.y * cos(offset_roll);
 	roll.z = VERTEX.z;
     // y-axis rotation with f(offset from pivot)
-	float offset_yrot = 1.0 + 4.0 * sqrt(VERTEX.x*VERTEX.x + VERTEX.z*VERTEX.z);
-	yoff.x = VERTEX.x * (cos(T*offset_yrot)) + VERTEX.z * (sin(T*offset_yrot));
+	float offset_yrot = (1.0 * sin(T) * (0.25 + 0.5 * (VERTEX.z*VERTEX.z)));
+	yoff.x = VERTEX.x * (cos(offset_yrot)) + VERTEX.z * (sin(offset_yrot));
 	yoff.y = VERTEX.y;
-	yoff.z = VERTEX.z * cos(T*offset_yrot) - VERTEX.x * sin(T*offset_yrot);
+	yoff.z = VERTEX.z * cos(offset_yrot) - VERTEX.x * sin(offset_yrot);
+	// side-to-side sine wave
+	swav.x += 1.2 * (VERTEX.z * (sin(T + 2.5*VERTEX.z)));
     // rate controlled by acceleration
-	VERTEX = yrot + 2.0 * xsid + 2.0 * roll + 1.5*yoff;
+	VERTEX = (yrot + xsid + roll + yoff + swav) / 4.0;
+	//VERTEX = (xsid + roll + yoff + swav) / 3.0;
 	UV = UV * uv1_scale.xy + uv1_offset.xy;
 }
 
