@@ -36,6 +36,7 @@ void vertex() {
 
 	// control rate by acceleration
 	float rate = 2.0; // slow swim: 2.0 -> fast swim: 20.0
+	float com = 2.5 * ((rate - 2.0) / 18.0) + 0.5 * (1.0 - (rate - 2.0) / 18.0); // 0.5 - 2.5
 	float T = TIME * rate;
 	// general equation for a rotation by an angle (T) about a pivot (u1)
 	//disp.x = VERTEX.x * (u1.x * u1.x * (1.0 - cos(T)) + cos(T))
@@ -47,7 +48,7 @@ void vertex() {
 	//disp.z = VERTEX.x * (u1.x * u1.y * (1.0 - cos(T)) - u1.y * sin(T))
 			//+ VERTEX.y * (u1.y * u1.z * (1.0 - cos(T)) + u1.x * sin(T))
 			//+ VERTEX.z * (u1.z * u1.z * (1.0 - cos(T)) + cos(T));
-	// y-axis rotation (u1 = 0,1,0) theta = 0.5*sin(T)
+	// y-axis rotation (u1 = 0,1,0) theta = 0.5*sin(T) //to get the side-to-side rotation
 	disp.x += VERTEX.x * (cos(0.5*sin(T))) + VERTEX.z * (sin(0.5*sin(T)));
 	disp.y += VERTEX.y;
 	disp.z += VERTEX.z * cos(0.5*sin(T)) - VERTEX.x * sin(0.5*sin(T));
@@ -61,8 +62,8 @@ void vertex() {
 	disp.y += VERTEX.x * sin(offset_roll) + VERTEX.y * cos(offset_roll);
 	disp.z += VERTEX.z;
     // y-axis rotation as a function of offset from pivot
-	float offset_yrot = (1.0 * sin(T) * (0.25 + 0.5 * (VERTEX.z*VERTEX.z)));
-	disp.x += VERTEX.x * (cos(offset_yrot)) + VERTEX.z * (sin(offset_yrot));
+	float offset_yrot = sin(T) * (0.25 + 0.5 * (VERTEX.z*VERTEX.z));
+	disp.x += VERTEX.x * (cos(offset_yrot)) + (VERTEX.z - com) * (sin(offset_yrot));
 	disp.y += VERTEX.y;
 	disp.z += VERTEX.z * cos(offset_yrot) - VERTEX.x * sin(offset_yrot);
 	// side-to-side sine wave
