@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://q43n3f57kytx"
+path="res://.godot/imported/fish-schooling.glsl-70cfc0afcb6a8ad87b3ae6a68a879bf6.res"
+
+[deps]
+
+source_file="res://compute-shaders/fish-schooling.glsl"
+dest_files=["res://.godot/imported/fish-schooling.glsl-70cfc0afcb6a8ad87b3ae6a68a879bf6.res"]
+
+[params]
+

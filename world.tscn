@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://cu58x2dq2j5en"]
+[gd_scene format=3 uid="uid://cu58x2dq2j5en"]
 
 [ext_resource type="PackedScene" uid="uid://c4bg5cfkp1ann" path="res://Fish/spine_fish.tscn" id="1_f3sb7"]
 
@@ -15,16 +15,16 @@ sky = SubResource("Sky_tlwt5")
 tonemap_mode = 2
 glow_enabled = true
 
-[node name="World" type="Node3D"]
+[node name="World" type="Node3D" unique_id=882191295]
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=105485007]
 transform = Transform3D(-0.8660254, -0.43301278, 0.25, 0, 0.49999997, 0.86602545, -0.50000006, 0.75, -0.43301266, 0, 0, 0)
 shadow_enabled = true
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=583451333]
 environment = SubResource("Environment_aqk2v")
 
-[node name="Camera3D" type="Camera3D" parent="."]
+[node name="Camera3D" type="Camera3D" parent="." unique_id=450889198]
 transform = Transform3D(1, 0, 0, 0, 0.8506552, 0.5257241, 0, -0.5257241, 0.8506552, 0, 0.5192056, 0.95578516)
 
-[node name="SpineFish" parent="." instance=ExtResource("1_f3sb7")]
+[node name="SpineFish" parent="." unique_id=616678734 instance=ExtResource("1_f3sb7")]
