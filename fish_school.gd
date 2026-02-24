@@ -1,6 +1,7 @@
 extends MultiMeshInstance3D
 
-@export var dist:Vector3 = Vector3(10, 5, 5)
+const FISH_SCHOOLING = preload("res://compute-shaders/fish-schooling.glsl")
+@export var dist:Vector3 = Vector3(5.0, 2.5, 2.5)
 var half_dist:Vector3
 
 # Called when the node enters the scene tree for the first time.
