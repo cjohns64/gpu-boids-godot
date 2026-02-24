@@ -1,0 +1,62 @@
+[gd_scene format=3 uid="uid://drleeoniwmb1b"]
+
+[ext_resource type="Script" uid="uid://c66j5xlk8eabq" path="res://UI/FPS_Counter.gd" id="1_vdfkq"]
+
+[node name="FPS_Counter" type="Control" unique_id=1778154344]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 6
+size_flags_vertical = 6
+script = ExtResource("1_vdfkq")
+
+[node name="Background" type="Panel" parent="." unique_id=2095789792]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -138.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = 63.0
+grow_horizontal = 0
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Background" unique_id=1277022830]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.029850746
+anchor_right = 0.96268654
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Background/VBoxContainer" unique_id=137909948]
+layout_mode = 2
+
+[node name="FPS-Label" type="Label" parent="Background/VBoxContainer/HBoxContainer" unique_id=741073987]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "FPS:"
+
+[node name="fps" type="Label" parent="Background/VBoxContainer/HBoxContainer" unique_id=1942814999]
+layout_mode = 2
+size_flags_horizontal = 10
+text = "0.0"
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="Background/VBoxContainer" unique_id=1383351170]
+layout_mode = 2
+
+[node name="MS-Label" type="Label" parent="Background/VBoxContainer/HBoxContainer2" unique_id=1367984007]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "ms:"
+
+[node name="ms" type="Label" parent="Background/VBoxContainer/HBoxContainer2" unique_id=110037301]
+layout_mode = 2
+size_flags_horizontal = 10
+text = "0.0"

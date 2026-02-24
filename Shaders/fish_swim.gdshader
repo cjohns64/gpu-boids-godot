@@ -32,7 +32,7 @@ void vertex() {
 
 	// control rate by acceleration
 	//float rate = 2.0; // slow swim: 2.0 -> fast swim: 20.0
-	float com = 2.5 * ((rate - 2.0) / 18.0) + 0.5 * (1.0 - (rate - 2.0) / 18.0); // 0.5 - 2.5
+	float body = (VERTEX.z + 0.9);
 	// set speed from 25% - 125% of regular speed
 	float T = (TIME * (0.25 + INSTANCE_CUSTOM.y) * time_scale) + (2.0 * PI * INSTANCE_CUSTOM.x);
 	// general equation for a rotation by an angle (T) about a pivot (u1)
@@ -54,18 +54,18 @@ void vertex() {
 	disp.y += VERTEX.y;
 	disp.z += VERTEX.z;
     // roll rotation as a function of offset from pivot (u1 = 0,0,1)
-	float offset_roll = 0.5 * sin(T) * (1.0 + 5.0 * (VERTEX.x*VERTEX.x + VERTEX.y*VERTEX.y));
+	float offset_roll = 0.5 * sin(T) * (7.0 * (VERTEX.x*VERTEX.x + VERTEX.y*VERTEX.y));
 	disp.x += VERTEX.x * cos(offset_roll) - VERTEX.y * sin(offset_roll);
 	disp.y += VERTEX.x * sin(offset_roll) + VERTEX.y * cos(offset_roll);
 	disp.z += VERTEX.z;
     // y-axis rotation as a function of offset from pivot
 	float offset_yrot = sin(T) * (0.25 + 0.5 * (VERTEX.z*VERTEX.z));
-	disp.x += VERTEX.x * (cos(offset_yrot)) + (VERTEX.z - com) * (sin(offset_yrot));
+	disp.x += VERTEX.x * (cos(offset_yrot)) + (VERTEX.z - body) * (sin(offset_yrot));
 	disp.y += VERTEX.y;
 	disp.z += VERTEX.z * cos(offset_yrot) - VERTEX.x * sin(offset_yrot);
 	// side-to-side sine wave
-	disp.x += 1.2 * (VERTEX.z * (sin(T + 2.5*VERTEX.z)));
-
+	float mask = smoothstep(0.0, 1.0, 1.0 - body);
+	disp.x += 0.5 * mask * (cos(T + 6.0 * body));
 	//VERTEX = (yrot + xsid + roll + yoff + swav) / 4.0;
 	VERTEX = disp / 4.0; // yrot, xsid, roll, yoff all contribute 1 full vertex displacement, need to normalize
 	UV = UV * uv1_scale.xy + uv1_offset.xy;
@@ -73,7 +73,6 @@ void vertex() {
 
 void fragment() {
 	vec2 base_uv = UV;
-
 	vec4 albedo_tex = texture(texture_albedo, base_uv);
 	ALBEDO = albedo.rgb * albedo_tex.rgb;
 
