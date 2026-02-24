@@ -25,6 +25,7 @@ uniform vec3 uv2_scale;
 uniform vec3 uv2_offset;
 
 uniform float rate : hint_range(2.0, 15.0);
+uniform float time_scale;
 
 void vertex() {
 	vec3 disp = vec3(0, 0, 0);
@@ -32,7 +33,8 @@ void vertex() {
 	// control rate by acceleration
 	//float rate = 2.0; // slow swim: 2.0 -> fast swim: 20.0
 	float com = 2.5 * ((rate - 2.0) / 18.0) + 0.5 * (1.0 - (rate - 2.0) / 18.0); // 0.5 - 2.5
-	float T = fract(TIME * rate * 0.25) * 2.0 * PI;
+	// set speed from 25% - 125% of regular speed
+	float T = (TIME * (0.25 + INSTANCE_CUSTOM.y) * time_scale) + (2.0 * PI * INSTANCE_CUSTOM.x);
 	// general equation for a rotation by an angle (T) about a pivot (u1)
 	//disp.x = VERTEX.x * (u1.x * u1.x * (1.0 - cos(T)) + cos(T))
 			//+ VERTEX.y * (u1.x * u1.y * (1.0 - cos(T)) - u1.z * sin(T))
