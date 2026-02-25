@@ -24,7 +24,6 @@ uniform vec3 uv1_offset;
 uniform vec3 uv2_scale;
 uniform vec3 uv2_offset;
 
-uniform float rate : hint_range(2.0, 15.0);
 uniform float time_scale;
 
 void vertex() {

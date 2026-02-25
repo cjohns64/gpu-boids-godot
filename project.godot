@@ -19,6 +19,10 @@ run/main_scene="uid://cu58x2dq2j5en"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
+[debug]
+
+settings/stdout/print_fps=true
+
 [editor]
 
 movie_writer/video_quality=0.4

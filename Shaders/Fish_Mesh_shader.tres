@@ -22,7 +22,6 @@ shader_parameter/uv1_scale = Vector3(1, 1, 1)
 shader_parameter/uv1_offset = Vector3(0, 0, 0)
 shader_parameter/uv2_scale = Vector3(1, 1, 1)
 shader_parameter/uv2_offset = Vector3(0, 0, 0)
-shader_parameter/rate = 2.0
 shader_parameter/time_scale = 5.0
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_n2bx2"]
