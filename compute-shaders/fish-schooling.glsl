@@ -112,9 +112,9 @@ void main() {
     }
     separation = boids_buffer.coeff[gl_GlobalInvocationID.x].z * normalize(separation);
 
+    // accellerate in direction of boids motion
+
     // update current fish to the averages by boids_coeff amount, if they are part of the mask
-    if (mask_buffer.compute_mask[gl_GlobalInvocationID.x]) {
-        direction_buffer.direction[gl_GlobalInvocationID.x] = 
-                normalize(direction_buffer.direction[gl_GlobalInvocationID.x] + cohesion + alignment + separation);
-    }
+    direction_buffer.direction[gl_GlobalInvocationID.x] = 
+            normalize(direction_buffer.direction[gl_GlobalInvocationID.x] + cohesion + alignment + separation);
 }

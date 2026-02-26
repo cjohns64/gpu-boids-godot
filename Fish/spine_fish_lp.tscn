@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://b6hf7qdcymfbd"]
+
+[ext_resource type="PackedScene" uid="uid://bohl6e3a7gtp7" path="res://assets/SpineFish_LP.glb" id="1_jn60y"]
+[ext_resource type="ArrayMesh" uid="uid://3vppodfrxxox" path="res://Shaders/Fish_Mesh_LP_shader.tres" id="3_u8wc8"]
+
+[node name="SpineFish_LP" unique_id=836282274 instance=ExtResource("1_jn60y")]
+
+[node name="retopo" parent="." index="0" unique_id=1472878095]
+mesh = ExtResource("3_u8wc8")

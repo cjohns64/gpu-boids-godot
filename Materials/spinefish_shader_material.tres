@@ -1,0 +1,25 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://dxhvhaf21oes6"]
+
+[ext_resource type="Shader" uid="uid://dlajkc8nb74v4" path="res://Shaders/fish_swim.gdshader" id="1_um6mw"]
+[ext_resource type="Texture2D" uid="uid://ptuxsnlrk2jr" path="res://assets/SpineFish_spine-fish-color.jpg" id="2_6ihdl"]
+[ext_resource type="Texture2D" uid="uid://cs5os3wjmn8gi" path="res://assets/SpineFish_spine-fish-normal.jpg" id="3_xfcyt"]
+
+[resource]
+resource_name = "Material"
+render_priority = 0
+shader = ExtResource("1_um6mw")
+shader_parameter/albedo = Color(1, 1, 1, 1)
+shader_parameter/texture_albedo = ExtResource("2_6ihdl")
+shader_parameter/albedo_texture_size = Vector2i(1024, 1024)
+shader_parameter/point_size = 1.0
+shader_parameter/roughness = 0.5
+shader_parameter/metallic_texture_channel = Vector4(1, 0, 0, 0)
+shader_parameter/specular = 0.5
+shader_parameter/metallic = 0.0
+shader_parameter/texture_normal = ExtResource("3_xfcyt")
+shader_parameter/normal_scale = 1.4
+shader_parameter/uv1_scale = Vector3(1, 1, 1)
+shader_parameter/uv1_offset = Vector3(0, 0, 0)
+shader_parameter/uv2_scale = Vector3(1, 1, 1)
+shader_parameter/uv2_offset = Vector3(0, 0, 0)
+shader_parameter/time_scale = 5.0
