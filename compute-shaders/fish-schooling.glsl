@@ -6,6 +6,13 @@
 // Invocations in the (x, y, z) dimension
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
+//priority_buffer s0 b0 float
+//compute_mask  s0 b1 bool
+//target    s0 b2 vec3
+//coeff     s0 b3 vec3
+//position     s1 b4 vec3
+//rate     s1 b5 float
+//direction     s1 b6 vec3
 //TODO
 layout(set=0, binding=0, std430) readonly buffer FishPriorityBuffer {
     // the boids priority for each fish in the dispatch
@@ -24,16 +31,16 @@ layout(set=0, binding=2, std430) restrict buffer FishTargetBuffer {
     vec3 target[ARRAY_LEN];
 } target_buffer;
 
-layout(set=0, binding=3, std430) restrict buffer FishLocationBuffer {
-    // current location of each fish
-    vec3 location[ARRAY_LEN];
-} location_buffer;
-
-layout(set=0, binding=4, std430) readonly buffer FishBoidsBuffer {
+layout(set=0, binding=3, std430) readonly buffer FishBoidsBuffer {
     // boids coefficients for scaling weight of each component for each fish
     // x = cohesion, y = alignment, z = separation
     vec3 coeff[ARRAY_LEN];
 } boids_buffer;
+
+layout(set=1, binding=4, std430) restrict buffer FishPositionBuffer {
+    // current position of each fish
+    vec3 position[ARRAY_LEN];
+} position_buffer;
 
 layout(set=1, binding=5, std430) restrict buffer FishSwimRateBuffer {
     // the swim speed for each fish in the dispatch
@@ -53,7 +60,7 @@ void main() {
     vec3 sum_dir[ARRAY_LEN];
     // load sum arrays
     sum_dir[gl_GlobalInvocationID.x] = direction_buffer.direction[gl_GlobalInvocationID.x];
-    sum_pos[gl_GlobalInvocationID.x] = location_buffer.location[gl_GlobalInvocationID.x];
+    sum_pos[gl_GlobalInvocationID.x] = position_buffer.position[gl_GlobalInvocationID.x];
     barrier(); // wait for all threads
     // Performs a shuffle XOR operation, summing elements mirrored across the pivot(s).
     // A pivot value equal to the array length / 2 will result in
@@ -93,7 +100,7 @@ void main() {
 
     // cohesion
     // -> rotate towards average position
-    vec3 position_diff = location_buffer.location[gl_GlobalInvocationID.x] - sum_pos[gl_GlobalInvocationID.x];
+    vec3 position_diff = position_buffer.position[gl_GlobalInvocationID.x] - sum_pos[gl_GlobalInvocationID.x];
     vec3 cohesion = boids_buffer.coeff[gl_GlobalInvocationID.x].x * position_diff;
     // alignment
     // -> rotate towards average direction
@@ -105,16 +112,23 @@ void main() {
         // skip the current index
         if (i == gl_GlobalInvocationID.x) continue;
         // calculate the mix factor
-        vec3 separation_vector = location_buffer.location[gl_GlobalInvocationID.x] - location_buffer.location[i];
+        vec3 separation_vector = position_buffer.position[gl_GlobalInvocationID.x] - position_buffer.position[i];
         // vec / dot(vec, vec) instead of normalize to save on the sqrt
         // this function will also -> inf as x -> 0 and -> 0 as x -> inf.
         separation -= separation_vector / dot(separation_vector, separation_vector);
     }
     separation = boids_buffer.coeff[gl_GlobalInvocationID.x].z * normalize(separation);
 
-    // accellerate in direction of boids motion
+    // accelerate in direction of boids motion
+    vec3 vect_boids = normalize(cohesion + alignment + separation) * 0.1;
+    vec3 velocity = direction_buffer.direction[gl_GlobalInvocationID.x] * swimrate_buffer.rate[gl_GlobalInvocationID.x];
+    vec3 result_v = velocity + vect_boids;
 
-    // update current fish to the averages by boids_coeff amount, if they are part of the mask
-    direction_buffer.direction[gl_GlobalInvocationID.x] = 
-            normalize(direction_buffer.direction[gl_GlobalInvocationID.x] + cohesion + alignment + separation);
+    // set direction to point towards result_v
+    direction_buffer.direction[gl_GlobalInvocationID.x] = normalize(result_v);
+    // set rate to length of result_v vector
+    swimrate_buffer.rate[gl_GlobalInvocationID.x] = sqrt(dot(result_v, result_v));
+    // update position
+    position_buffer.position[gl_GlobalInvocationID.x] = position_buffer.position[gl_GlobalInvocationID.x] + result_v;
+
 }
