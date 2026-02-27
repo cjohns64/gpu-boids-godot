@@ -13,12 +13,12 @@ var shader:RID
 var pipeline:RID
 # References to storage buffers
 var buffers:Array[RID] = []
-const NUM_UNIF:int = 7
+const NUM_UNIF:int = 6
 
 class FishData:
 	var priorites:Array[float]
 	var mask:Array[bool]
-	var targets:Array[Vector3]
+	#var targets:Array[Vector3]
 	var positions:Array[Vector3]
 	var directions:Array[Vector3]
 	var boids:Array[Vector3]
@@ -27,7 +27,7 @@ class FishData:
 	func _init(size:int) -> void:
 		priorites.resize(size)
 		mask.resize(size)
-		targets.resize(size)
+		#targets.resize(size)
 		positions.resize(size)
 		directions.resize(size)
 		boids.resize(size)
@@ -55,23 +55,22 @@ func __setup_compute_step() -> void:
 
 	var priorities_bytes: PackedByteArray = PackedFloat32Array(data.priorites).to_byte_array()
 	var compute_bytes: PackedByteArray = PackedByteArray(data.mask)
-	var targets_bytes: PackedByteArray = PackedVector3Array(data.targets).to_byte_array()
+	#var targets_bytes: PackedByteArray = PackedVector3Array(data.targets).to_byte_array()
 	var boids_bytes: PackedByteArray = PackedVector3Array(data.boids).to_byte_array()
 	var position_bytes: PackedByteArray = PackedVector3Array(data.positions).to_byte_array()
-	var rate_bytes: PackedByteArray = PackedVector3Array(data.rates).to_byte_array()
+	var rate_bytes: PackedByteArray = PackedFloat32Array(data.rates).to_byte_array()
 	var direction_bytes: PackedByteArray = PackedVector3Array(data.directions).to_byte_array()
 
 	# Create the storage buffers
 	buffers[0] = rd.storage_buffer_create(priorities_bytes.size(), priorities_bytes)
 	buffers[1] = rd.storage_buffer_create(compute_bytes.size(), compute_bytes)
-	buffers[2] = rd.storage_buffer_create(targets_bytes.size(), targets_bytes)
-	buffers[3] = rd.storage_buffer_create(boids_bytes.size(), boids_bytes)
-	buffers[4] = rd.storage_buffer_create(position_bytes.size(), position_bytes)
-	buffers[5] = rd.storage_buffer_create(rate_bytes.size(), rate_bytes)
-	buffers[6] = rd.storage_buffer_create(direction_bytes.size(), direction_bytes)
+	#buffers[2] = rd.storage_buffer_create(targets_bytes.size(), targets_bytes)
+	buffers[2] = rd.storage_buffer_create(boids_bytes.size(), boids_bytes)
+	buffers[3] = rd.storage_buffer_create(position_bytes.size(), position_bytes)
+	buffers[4] = rd.storage_buffer_create(rate_bytes.size(), rate_bytes)
+	buffers[5] = rd.storage_buffer_create(direction_bytes.size(), direction_bytes)
 
 func __compute_school() -> void:
-	# TODO minimize data transfer
 	# Create a uniform for each buffer
 	var uniforms:Array[RDUniform] = [];
 	uniforms.resize(NUM_UNIF)
@@ -82,8 +81,8 @@ func __compute_school() -> void:
 		uniforms[i].add_id(buffers[i])
 	
 	# the last parameter needs to match the "set" in the shader file
-	var set_id_0:RID = rd.uniform_set_create([uniforms[0], uniforms[1], uniforms[2], uniforms[3]], shader, 0)
-	var set_id_1:RID = rd.uniform_set_create([uniforms[4], uniforms[5], uniforms[6]], shader, 1)
+	var set_id_0:RID = rd.uniform_set_create([uniforms[0], uniforms[1], uniforms[2]], shader, 0)
+	var set_id_1:RID = rd.uniform_set_create([uniforms[3], uniforms[4], uniforms[5]], shader, 1)
 	
 	var compute_list := rd.compute_list_begin()
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
@@ -97,20 +96,26 @@ func __compute_school() -> void:
 	rd.sync()
 	
 	# Read back the data from the buffer
-	var new_pos_bytes:PackedVector3Array = rd.buffer_get_data(buffers[4]).to_vector3_array()
-	var new_rate_bytes:PackedFloat32Array = rd.buffer_get_data(buffers[5]).to_float32_array()
-	var new_dir_bytes:PackedVector3Array = rd.buffer_get_data(buffers[6]).to_vector3_array()
-	for i in range(new_pos_bytes.size()):
+	var new_pos_bytes:PackedByteArray = rd.buffer_get_data(buffers[3])
+	var new_pos:PackedVector3Array = new_pos_bytes.to_vector3_array()
+	var new_rate_bytes:PackedByteArray = rd.buffer_get_data(buffers[4])
+	var new_rate:PackedFloat32Array = new_rate_bytes.to_float32_array()
+	var new_dir_bytes:PackedByteArray = rd.buffer_get_data(buffers[5])
+	#print(new_dir_bytes.size())
+	var new_dir:PackedVector3Array = new_dir_bytes.to_vector3_array()
+	#print(new_dir.size())
+	for i in range(self.multimesh.instance_count):
 		var transform_matrix:Transform3D = self.multimesh.get_instance_transform(i)
-		# look at new pointing direction
-		transform_matrix = transform_matrix.looking_at(new_pos_bytes[i] + new_dir_bytes[i], Vector3.UP, true)
 		# move to new position
-		transform_matrix = transform_matrix.translated(new_pos_bytes[i] - data.positions[i])
+		transform_matrix = transform_matrix.translated(new_pos[i] - data.positions[i])
+		# look at new pointing direction
+		transform_matrix = transform_matrix.looking_at(new_dir[i] + data.positions[i], Vector3.UP, true)
 		self.multimesh.set_instance_transform(i, transform_matrix)
 		# update position, rate, and direction
-		data.positions[i] = new_pos_bytes[i]
-		data.rates[i] = new_rate_bytes[i]
-		data.directions[i] = new_dir_bytes[i]
+		data.positions[i] = new_pos[i]
+		data.rates[i] = new_rate[i]
+		data.directions[i] = new_dir[i]
+	pass
 
 	# free local RIDs
 	rd.free_rid(set_id_0)
@@ -124,18 +129,19 @@ func _ready() -> void:
 	for i in range(self.multimesh.instance_count):
 		var transform_matrix = Transform3D()
 		var location:Vector3 = Vector3(randf() * dist.x - half_dist.x, randf() * dist.y - half_dist.y, randf() * dist.z - half_dist.z)
-		var direction:Vector3 = Vector3(randf(), randf(), randf())
+		#var location := Vector3.UP
+		var direction:Vector3 = Vector3(randf() - 0.5, randf() - 0.5, randf() - 0.5)
 		transform_matrix = transform_matrix.looking_at(direction + location, Vector3.UP, true)
-		transform_matrix = transform_matrix.translated_local(location)
+		transform_matrix = transform_matrix.translated(location)
 		self.multimesh.set_instance_transform(i, transform_matrix)
-		var rate:float = randf()
+		var rate:float = 0.5
 		self.multimesh.set_instance_custom_data(i, Color(rate, randf(), randf(), randf()))
 		# add fish to data
 		data.positions[i] = location
 		data.mask[i] = true
 		data.boids[i] = Vector3(1.0, 1.0, 1.0)
 		data.priorites[i] = 1.0
-		data.targets[i] = Vector3.ZERO
+		#data.targets[i] = Vector3.ZERO
 		data.directions[i] = direction # forward direction
 		data.rates[i] = rate
 		

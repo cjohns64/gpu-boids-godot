@@ -6,6 +6,12 @@
 // Invocations in the (x, y, z) dimension
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
+struct Vector3 {
+    float x;
+    float y;
+    float z;
+};
+
 //priority_buffer s0 b0 float
 //compute_mask  s0 b1 bool
 //target    s0 b2 vec3
@@ -26,57 +32,64 @@ layout(set=0, binding=1, std430) readonly buffer FishMaskBuffer {
 } mask_buffer;
 
 //TODO
-layout(set=0, binding=2, std430) restrict buffer FishTargetBuffer {
-    // target swim position for each fish
-    vec3 target[ARRAY_LEN];
-} target_buffer;
+// layout(set=0, binding=2, std430) restrict buffer FishTargetBuffer {
+//     // target swim position for each fish
+//     vec3 target[ARRAY_LEN];
+// } target_buffer;
 
-layout(set=0, binding=3, std430) readonly buffer FishBoidsBuffer {
+layout(set=0, binding=2, std430) readonly buffer FishBoidsBuffer {
     // boids coefficients for scaling weight of each component for each fish
     // x = cohesion, y = alignment, z = separation
-    vec3 coeff[ARRAY_LEN];
+    Vector3 coeff[ARRAY_LEN];
 } boids_buffer;
 
-layout(set=1, binding=4, std430) restrict buffer FishPositionBuffer {
+layout(set=1, binding=3, std430) restrict buffer FishPositionBuffer {
     // current position of each fish
-    vec3 position[ARRAY_LEN];
+    Vector3 position[ARRAY_LEN];
 } position_buffer;
 
-layout(set=1, binding=5, std430) restrict buffer FishSwimRateBuffer {
+layout(set=1, binding=4, std430) restrict buffer FishSwimRateBuffer {
     // the swim speed for each fish in the dispatch
     float rate[ARRAY_LEN];
 } swimrate_buffer;
 
-layout(set=1, binding=6, std430) restrict buffer FishDirectionBuffer {
+layout(set=1, binding=5, std430) restrict buffer FishDirectionBuffer {
     // current swim direction of each fish
-    vec3 direction[ARRAY_LEN];
-} direction_buffer;
+    Vector3 direction[ARRAY_LEN];
+} dir_buf;
 
+shared vec3 sum_pos[ARRAY_LEN/2];
+shared vec3 sum_dir[ARRAY_LEN/2];
 
 void main() {
     // calculate average position and direction of the group
-    int x = ARRAY_LEN;
-    vec3 sum_pos[ARRAY_LEN];
-    vec3 sum_dir[ARRAY_LEN];
-    // load sum arrays
-    sum_dir[gl_GlobalInvocationID.x] = direction_buffer.direction[gl_GlobalInvocationID.x];
-    sum_pos[gl_GlobalInvocationID.x] = position_buffer.position[gl_GlobalInvocationID.x];
+    // load sum arrays, do the first reduction now so we use half the shared memory size
+    if (gl_GlobalInvocationID.x < ARRAY_LEN / 2) {
+        // sum_dir[gl_GlobalInvocationID.x] = vec3(dir_buf.x[gl_GlobalInvocationID.x], dir_buf.y[gl_GlobalInvocationID.x], dir_buf.z[gl_GlobalInvocationID.x]);
+        sum_dir[gl_GlobalInvocationID.x].x = dir_buf.direction[gl_GlobalInvocationID.x].x;
+        sum_dir[gl_GlobalInvocationID.x].y = dir_buf.direction[gl_GlobalInvocationID.x].y;
+        sum_dir[gl_GlobalInvocationID.x].z = dir_buf.direction[gl_GlobalInvocationID.x].z;
+        sum_pos[gl_GlobalInvocationID.x].x = position_buffer.position[gl_GlobalInvocationID.x].x;
+        sum_pos[gl_GlobalInvocationID.x].y = position_buffer.position[gl_GlobalInvocationID.x].y;
+        sum_pos[gl_GlobalInvocationID.x].z = position_buffer.position[gl_GlobalInvocationID.x].z;
+    }
     barrier(); // wait for all threads
-    // Performs a shuffle XOR operation, summing elements mirrored across the pivot(s).
-    // A pivot value equal to the array length / 2 will result in
-    // all the values in the first half being added to the second half
-    // and all values in the last half being added to the first half.
-    // A pivot value equal to 1 will result in each pair of values being 
-    // added to and placed in the other element.
-    // --- requirements ---
-    // - data must be an array of length == power of 2,
-    // - the pivot must also be a power of 2,
-    // - one thread per index
-    do {
-        x /= 2;
+    if (gl_GlobalInvocationID.x >= ARRAY_LEN / 2 && gl_GlobalInvocationID.x % 2 == 1) {
+        // sum_dir[gl_GlobalInvocationID.x / 2] += vec3(dir_buf.x[gl_GlobalInvocationID.x], dir_buf.y[gl_GlobalInvocationID.x], dir_buf.z[gl_GlobalInvocationID.x]);
+        sum_dir[gl_GlobalInvocationID.x / 2].x += dir_buf.direction[gl_GlobalInvocationID.x].x;
+        sum_dir[gl_GlobalInvocationID.x / 2].y += dir_buf.direction[gl_GlobalInvocationID.x].y;
+        sum_dir[gl_GlobalInvocationID.x / 2].z += dir_buf.direction[gl_GlobalInvocationID.x].z;
+        sum_pos[gl_GlobalInvocationID.x / 2].x += position_buffer.position[gl_GlobalInvocationID.x].x;
+        sum_pos[gl_GlobalInvocationID.x / 2].y += position_buffer.position[gl_GlobalInvocationID.x].y;
+        sum_pos[gl_GlobalInvocationID.x / 2].z += position_buffer.position[gl_GlobalInvocationID.x].z;
+    }
+    barrier(); // wait for all threads
+    // reduce the shared arrays with a shuffle down sum
+    for (uint x=4; x<=ARRAY_LEN; x*=2) {
         // shuffle pos and dir
         // calculate the shuffle index for this thread
-        uint toIndex = (gl_GlobalInvocationID.x + x)%(2*x) + (2*x)*(int(gl_GlobalInvocationID.x/(2*x)));
+        // uint toIndex = (gl_GlobalInvocationID.x + x)%(2*x) + (2*x)*(int(gl_GlobalInvocationID.x/(2*x)));
+        uint toIndex = gl_GlobalInvocationID.x / 2;
         // get sum values
         vec3 pv1 = sum_pos[gl_GlobalInvocationID.x];
         vec3 pv2 = sum_pos[toIndex];
@@ -84,27 +97,36 @@ void main() {
         vec3 dv2 = sum_dir[toIndex];
         barrier(); // wait for all threads
         // update the array with the sum
-        sum_pos[toIndex] = pv1 + pv2;
-        sum_dir[toIndex] = dv1 + dv2;
+        if (gl_GlobalInvocationID.x % 2 == 1) {
+            sum_pos[toIndex] = pv1 + pv2;
+            sum_dir[toIndex] = dv1 + dv2;
+        }
         barrier(); // wait for all threads
-    } while (x > 1);
-    
-    if (!mask_buffer.compute_mask[gl_GlobalInvocationID.x]) {
-        // don't compute this fish if it is masked
-        return;
     }
+    
+    // if (!mask_buffer.compute_mask[gl_GlobalInvocationID.x]) {
+    //     // don't compute this fish if it is masked
+    //     return;
+    // }
 
     // normalize
-    sum_pos[gl_GlobalInvocationID.x] = sum_pos[gl_GlobalInvocationID.x] / float(ARRAY_LEN);
-    sum_dir[gl_GlobalInvocationID.x] = normalize(sum_dir[gl_GlobalInvocationID.x]);
+    if (gl_GlobalInvocationID.x == 0) {
+        sum_pos[0] = sum_pos[0] / float(ARRAY_LEN);
+        sum_dir[0] = sum_dir[0] / sqrt(dot(sum_dir[0], sum_dir[0]));
+    }
+    barrier();
 
     // cohesion
     // -> rotate towards average position
-    vec3 position_diff = position_buffer.position[gl_GlobalInvocationID.x] - sum_pos[gl_GlobalInvocationID.x];
-    vec3 cohesion = boids_buffer.coeff[gl_GlobalInvocationID.x].x * position_diff;
+    vec3 position_diff = sum_pos[0] - vec3(
+            position_buffer.position[gl_GlobalInvocationID.x].x,
+            position_buffer.position[gl_GlobalInvocationID.x].y,
+            position_buffer.position[gl_GlobalInvocationID.x].z
+            );
+    vec3 cohesion = boids_buffer.coeff[gl_GlobalInvocationID.x].x * normalize(position_diff);
     // alignment
     // -> rotate towards average direction
-    vec3 alignment = boids_buffer.coeff[gl_GlobalInvocationID.x].y * sum_dir[gl_GlobalInvocationID.x];
+    vec3 alignment = boids_buffer.coeff[gl_GlobalInvocationID.x].y * sum_dir[0];
     // separation
     // -> rotate away from neighbors
     vec3 separation = vec3(0.0, 0.0, 0.0);
@@ -112,23 +134,27 @@ void main() {
         // skip the current index
         if (i == gl_GlobalInvocationID.x) continue;
         // calculate the mix factor
-        vec3 separation_vector = position_buffer.position[gl_GlobalInvocationID.x] - position_buffer.position[i];
+        float sep_x = position_buffer.position[gl_GlobalInvocationID.x].x - position_buffer.position[i].x;
+        float sep_y = position_buffer.position[gl_GlobalInvocationID.x].y - position_buffer.position[i].y;
+        float sep_z = position_buffer.position[gl_GlobalInvocationID.x].z - position_buffer.position[i].z;
+        vec3 separation_vector = vec3(sep_x, sep_y, sep_z);
         // vec / dot(vec, vec) instead of normalize to save on the sqrt
         // this function will also -> inf as x -> 0 and -> 0 as x -> inf.
-        separation -= separation_vector / dot(separation_vector, separation_vector);
+        separation += separation_vector / dot(separation_vector, separation_vector);
     }
     separation = boids_buffer.coeff[gl_GlobalInvocationID.x].z * normalize(separation);
 
     // accelerate in direction of boids motion
-    vec3 vect_boids = normalize(cohesion + alignment + separation) * 0.1;
-    vec3 velocity = direction_buffer.direction[gl_GlobalInvocationID.x] * swimrate_buffer.rate[gl_GlobalInvocationID.x];
-    vec3 result_v = velocity + vect_boids;
+    // vec3 vect_boids = normalize(cohesion + alignment + separation) * 0.1;
 
     // set direction to point towards result_v
-    direction_buffer.direction[gl_GlobalInvocationID.x] = normalize(result_v);
+    // dir_buf.direction[gl_GlobalInvocationID.x] = normalize(result_v);
+    dir_buf.direction[gl_GlobalInvocationID.x].x = separation.x;
+    dir_buf.direction[gl_GlobalInvocationID.x].y = separation.y;
+    dir_buf.direction[gl_GlobalInvocationID.x].z = separation.z;
     // set rate to length of result_v vector
-    swimrate_buffer.rate[gl_GlobalInvocationID.x] = sqrt(dot(result_v, result_v));
+    // swimrate_buffer.rate[gl_GlobalInvocationID.x] = sqrt(dot(result_v, result_v));
     // update position
-    position_buffer.position[gl_GlobalInvocationID.x] = position_buffer.position[gl_GlobalInvocationID.x] + result_v;
+    //position_buffer.position[gl_GlobalInvocationID.x] = position_buffer.position[gl_GlobalInvocationID.x] + result_v;
 
 }
