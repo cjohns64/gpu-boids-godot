@@ -3,6 +3,7 @@ extends MultiMeshInstance3D
 const FISH_SCHOOLING = preload("res://compute-shaders/fish-schooling.glsl")
 @export var dist:Vector3 = Vector3(8.0, 5.0, 5.0)
 var half_dist:Vector3
+@onready var target: Node3D = $"../Target"
 
 # Reference to the active Rendering Device
 # This is Godot's abstraction of GLSL, objects will interface with it using RIDs
@@ -13,12 +14,12 @@ var shader:RID
 var pipeline:RID
 # References to storage buffers
 var buffers:Array[RID] = []
-const NUM_UNIF:int = 6
+const NUM_UNIF:int = 7
 
 class FishData:
 	var priorites:Array[float]
 	var mask:Array[bool]
-	#var targets:Array[Vector3]
+	var target:Vector3
 	var positions:Array[Vector3]
 	var directions:Array[Vector3]
 	var boids:Array[Vector3]
@@ -55,7 +56,7 @@ func __setup_compute_step() -> void:
 
 	var priorities_bytes: PackedByteArray = PackedFloat32Array(data.priorites).to_byte_array()
 	var compute_bytes: PackedByteArray = PackedByteArray(data.mask)
-	#var targets_bytes: PackedByteArray = PackedVector3Array(data.targets).to_byte_array()
+	var target_bytes:PackedByteArray = PackedVector3Array([data.target]).to_byte_array()
 	var boids_bytes: PackedByteArray = PackedVector3Array(data.boids).to_byte_array()
 	var position_bytes: PackedByteArray = PackedVector3Array(data.positions).to_byte_array()
 	var rate_bytes: PackedByteArray = PackedFloat32Array(data.rates).to_byte_array()
@@ -64,11 +65,11 @@ func __setup_compute_step() -> void:
 	# Create the storage buffers
 	buffers[0] = rd.storage_buffer_create(priorities_bytes.size(), priorities_bytes)
 	buffers[1] = rd.storage_buffer_create(compute_bytes.size(), compute_bytes)
-	#buffers[2] = rd.storage_buffer_create(targets_bytes.size(), targets_bytes)
-	buffers[2] = rd.storage_buffer_create(boids_bytes.size(), boids_bytes)
-	buffers[3] = rd.storage_buffer_create(position_bytes.size(), position_bytes)
-	buffers[4] = rd.storage_buffer_create(rate_bytes.size(), rate_bytes)
-	buffers[5] = rd.storage_buffer_create(direction_bytes.size(), direction_bytes)
+	buffers[2] = rd.storage_buffer_create(target_bytes.size(), target_bytes)
+	buffers[3] = rd.storage_buffer_create(boids_bytes.size(), boids_bytes)
+	buffers[4] = rd.storage_buffer_create(position_bytes.size(), position_bytes)
+	buffers[5] = rd.storage_buffer_create(rate_bytes.size(), rate_bytes)
+	buffers[6] = rd.storage_buffer_create(direction_bytes.size(), direction_bytes)
 
 func __compute_school() -> void:
 	# Create a uniform for each buffer
@@ -81,8 +82,8 @@ func __compute_school() -> void:
 		uniforms[i].add_id(buffers[i])
 	
 	# the last parameter needs to match the "set" in the shader file
-	var set_id_0:RID = rd.uniform_set_create([uniforms[0], uniforms[1], uniforms[2]], shader, 0)
-	var set_id_1:RID = rd.uniform_set_create([uniforms[3], uniforms[4], uniforms[5]], shader, 1)
+	var set_id_0:RID = rd.uniform_set_create([uniforms[0], uniforms[1], uniforms[2], uniforms[3]], shader, 0)
+	var set_id_1:RID = rd.uniform_set_create([uniforms[4], uniforms[5], uniforms[6]], shader, 1)
 	
 	var compute_list := rd.compute_list_begin()
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
@@ -96,11 +97,11 @@ func __compute_school() -> void:
 	rd.sync()
 	
 	# Read back the data from the buffer
-	var new_pos_bytes:PackedByteArray = rd.buffer_get_data(buffers[3])
+	var new_pos_bytes:PackedByteArray = rd.buffer_get_data(buffers[4])
 	var new_pos:PackedVector3Array = new_pos_bytes.to_vector3_array()
-	var new_rate_bytes:PackedByteArray = rd.buffer_get_data(buffers[4])
+	var new_rate_bytes:PackedByteArray = rd.buffer_get_data(buffers[5])
 	var new_rate:PackedFloat32Array = new_rate_bytes.to_float32_array()
-	var new_dir_bytes:PackedByteArray = rd.buffer_get_data(buffers[5])
+	var new_dir_bytes:PackedByteArray = rd.buffer_get_data(buffers[6])
 	#print(new_dir_bytes.size())
 	var new_dir:PackedVector3Array = new_dir_bytes.to_vector3_array()
 	#print(new_dir.size())
@@ -115,7 +116,6 @@ func __compute_school() -> void:
 		data.positions[i] = new_pos[i]
 		data.rates[i] = new_rate[i]
 		data.directions[i] = new_dir[i]
-	pass
 
 	# free local RIDs
 	rd.free_rid(set_id_0)
@@ -139,9 +139,8 @@ func _ready() -> void:
 		# add fish to data
 		data.positions[i] = location
 		data.mask[i] = true
-		data.boids[i] = Vector3(1.0, 1.0, 1.0)
+		data.boids[i] = Vector3(1.0, 1.0, 1.5)
 		data.priorites[i] = 1.0
-		#data.targets[i] = Vector3.ZERO
 		data.directions[i] = direction # forward direction
 		data.rates[i] = rate
 		
@@ -149,6 +148,7 @@ func _ready() -> void:
 	__init_compute()
 
 func _physics_process(delta: float) -> void:
+	data.target = target.position
 	__setup_compute_step()
 	__compute_school()
 

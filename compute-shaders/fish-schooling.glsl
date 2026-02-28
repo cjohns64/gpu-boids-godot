@@ -31,29 +31,28 @@ layout(set=0, binding=1, std430) readonly buffer FishMaskBuffer {
     bool compute_mask[ARRAY_LEN];
 } mask_buffer;
 
-//TODO
-// layout(set=0, binding=2, std430) restrict buffer FishTargetBuffer {
-//     // target swim position for each fish
-//     vec3 target[ARRAY_LEN];
-// } target_buffer;
+layout(set=0, binding=2, std430) readonly buffer FishTargetBuffer {
+    // target swim position
+    Vector3 target;
+} target_buffer;
 
-layout(set=0, binding=2, std430) readonly buffer FishBoidsBuffer {
+layout(set=0, binding=3, std430) readonly buffer FishBoidsBuffer {
     // boids coefficients for scaling weight of each component for each fish
     // x = cohesion, y = alignment, z = separation
     Vector3 coeff[ARRAY_LEN];
 } boids_buffer;
 
-layout(set=1, binding=3, std430) restrict buffer FishPositionBuffer {
+layout(set=1, binding=4, std430) restrict buffer FishPositionBuffer {
     // current position of each fish
     Vector3 position[ARRAY_LEN];
 } position_buffer;
 
-layout(set=1, binding=4, std430) restrict buffer FishSwimRateBuffer {
+layout(set=1, binding=5, std430) restrict buffer FishSwimRateBuffer {
     // the swim speed for each fish in the dispatch
     float rate[ARRAY_LEN];
 } swimrate_buffer;
 
-layout(set=1, binding=5, std430) restrict buffer FishDirectionBuffer {
+layout(set=1, binding=6, std430) restrict buffer FishDirectionBuffer {
     // current swim direction of each fish
     Vector3 direction[ARRAY_LEN];
 } dir_buf;
@@ -144,17 +143,20 @@ void main() {
     }
     separation = boids_buffer.coeff[gl_GlobalInvocationID.x].z * normalize(separation);
 
-    // accelerate in direction of boids motion
-    // vec3 vect_boids = normalize(cohesion + alignment + separation) * 0.1;
+    // get direction to flow target
+    vec3 target_dir = vec3(0.0, 0.0, 0.0);
+    target_dir.x = target_buffer.target.x - position_buffer.position[gl_GlobalInvocationID.x].x;
+    target_dir.y = target_buffer.target.y - position_buffer.position[gl_GlobalInvocationID.x].y;
+    target_dir.z = target_buffer.target.z - position_buffer.position[gl_GlobalInvocationID.x].z;
+    target_dir = normalize(target_dir);
 
-    // set direction to point towards result_v
-    // dir_buf.direction[gl_GlobalInvocationID.x] = normalize(result_v);
-    dir_buf.direction[gl_GlobalInvocationID.x].x = separation.x;
-    dir_buf.direction[gl_GlobalInvocationID.x].y = separation.y;
-    dir_buf.direction[gl_GlobalInvocationID.x].z = separation.z;
-    // set rate to length of result_v vector
-    // swimrate_buffer.rate[gl_GlobalInvocationID.x] = sqrt(dot(result_v, result_v));
+    // set direction to point towards result
+    dir_buf.direction[gl_GlobalInvocationID.x].x = separation.x + alignment.x + cohesion.x + target_dir.x;
+    dir_buf.direction[gl_GlobalInvocationID.x].y = separation.y + alignment.y + cohesion.y + target_dir.y;
+    dir_buf.direction[gl_GlobalInvocationID.x].z = separation.z + alignment.z + cohesion.z + target_dir.z;
     // update position
-    //position_buffer.position[gl_GlobalInvocationID.x] = position_buffer.position[gl_GlobalInvocationID.x] + result_v;
+    position_buffer.position[gl_GlobalInvocationID.x].x = position_buffer.position[gl_GlobalInvocationID.x].x + 0.005 * dir_buf.direction[gl_GlobalInvocationID.x].x;
+    position_buffer.position[gl_GlobalInvocationID.x].y = position_buffer.position[gl_GlobalInvocationID.x].y + 0.005 * dir_buf.direction[gl_GlobalInvocationID.x].y;
+    position_buffer.position[gl_GlobalInvocationID.x].z = position_buffer.position[gl_GlobalInvocationID.x].z + 0.005 * dir_buf.direction[gl_GlobalInvocationID.x].z;
 
 }
