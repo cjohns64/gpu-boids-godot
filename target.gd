@@ -11,4 +11,4 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	theta += delta
 	self.position.x = radius * cos(0.25 * theta)
-	self.position.z = radius * sin(0.25 * theta)
+	self.position.z = radius * sin(0.15 * theta)

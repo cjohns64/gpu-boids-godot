@@ -18,7 +18,7 @@ const NUM_UNIF:int = 7
 
 class FishData:
 	var priorites:Array[float]
-	var mask:Array[bool]
+	var mask:Array[float]
 	var target:Vector3
 	var positions:Array[Vector3]
 	var directions:Array[Vector3]
@@ -28,7 +28,6 @@ class FishData:
 	func _init(size:int) -> void:
 		priorites.resize(size)
 		mask.resize(size)
-		#targets.resize(size)
 		positions.resize(size)
 		directions.resize(size)
 		boids.resize(size)
@@ -47,15 +46,15 @@ func __init_compute() -> void:
 
 func __setup_compute_step() -> void:
 	# priority		s0 b0 float
-	# mask			s0 b1 bool
-	# target			s0 b2 vec3
+	# mask			s0 b1 float
+	# target		s0 b2 vec3
 	# coeff			s0 b3 vec3
 	# position		s1 b4 vec3
 	# rate			s1 b5 float
 	# direction		s1 b6 vec3
 
 	var priorities_bytes: PackedByteArray = PackedFloat32Array(data.priorites).to_byte_array()
-	var compute_bytes: PackedByteArray = PackedByteArray(data.mask)
+	var compute_bytes: PackedByteArray = PackedFloat32Array(data.mask).to_byte_array()
 	var target_bytes:PackedByteArray = PackedVector3Array([data.target]).to_byte_array()
 	var boids_bytes: PackedByteArray = PackedVector3Array(data.boids).to_byte_array()
 	var position_bytes: PackedByteArray = PackedVector3Array(data.positions).to_byte_array()
@@ -138,7 +137,7 @@ func _ready() -> void:
 		self.multimesh.set_instance_custom_data(i, Color(rate, randf(), randf(), randf()))
 		# add fish to data
 		data.positions[i] = location
-		data.mask[i] = true
+		data.mask[i] = 1.0
 		data.boids[i] = Vector3(1.0, 1.0, 1.5)
 		data.priorites[i] = 1.0
 		data.directions[i] = direction # forward direction
