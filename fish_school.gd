@@ -12,9 +12,7 @@ var rd:RenderingDevice
 var shader:RID
 # Reference to the compute pipeline
 var pipeline:RID
-# References to storage buffers
-var buffers:Array[RID] = []
-const NUM_UNIF:int = 7
+var dispatch_timer:float = 0.0
 
 class FishData:
 	var priorites:Array[float]
@@ -34,6 +32,14 @@ class FishData:
 		rates.resize(size)
 
 var data:FishData
+# storage buffers
+var buffer_bytes_dict:Dictionary[String, PackedByteArray] = {}
+# storage buffer refernce IDs
+var buffers_dict:Dictionary[String, RID] = {}
+# uniforms
+var uniforms_dict:Dictionary[String, RDUniform] = {}
+# uniform binding list
+var uniforms_binding_dict:Dictionary[String, int] = {}
 
 func __init_compute() -> void:
 	# Setup the reference to the Rendering Device
@@ -42,47 +48,55 @@ func __init_compute() -> void:
 	shader = rd.shader_create_from_spirv(FISH_SCHOOLING.get_spirv())
 	# Create a compute pipeline
 	pipeline = rd.compute_pipeline_create(shader)
-	buffers.resize(NUM_UNIF)
-
-func __setup_compute_step() -> void:
-	# priority		s0 b0 float
-	# mask			s0 b1 float
-	# target		s0 b2 vec3
-	# coeff			s0 b3 vec3
-	# position		s1 b4 vec3
-	# rate			s1 b5 float
-	# direction		s1 b6 vec3
-
-	var priorities_bytes: PackedByteArray = PackedFloat32Array(data.priorites).to_byte_array()
-	var compute_bytes: PackedByteArray = PackedFloat32Array(data.mask).to_byte_array()
-	var target_bytes:PackedByteArray = PackedVector3Array([data.target]).to_byte_array()
-	var boids_bytes: PackedByteArray = PackedVector3Array(data.boids).to_byte_array()
-	var position_bytes: PackedByteArray = PackedVector3Array(data.positions).to_byte_array()
-	var rate_bytes: PackedByteArray = PackedFloat32Array(data.rates).to_byte_array()
-	var direction_bytes: PackedByteArray = PackedVector3Array(data.directions).to_byte_array()
+	buffer_bytes_dict["prior"] = PackedFloat32Array(data.priorites).to_byte_array()
+	buffer_bytes_dict["compute"] = PackedFloat32Array(data.mask).to_byte_array()
+	buffer_bytes_dict["target"] = PackedVector3Array([data.target]).to_byte_array()
+	buffer_bytes_dict["boids"] = PackedVector3Array(data.boids).to_byte_array()
+	buffer_bytes_dict["time"] = PackedFloat32Array([dispatch_timer]).to_byte_array()
+	buffer_bytes_dict["position"] = PackedVector3Array(data.positions).to_byte_array()
+	buffer_bytes_dict["rate"] = PackedFloat32Array(data.rates).to_byte_array()
+	buffer_bytes_dict["direction"] = PackedVector3Array(data.directions).to_byte_array()
+	
+	# this needs to match the "binding" in the shader file
+	uniforms_binding_dict["prior"] = 0
+	uniforms_binding_dict["compute"] = 1
+	uniforms_binding_dict["target"] = 2
+	uniforms_binding_dict["boids"] = 3
+	uniforms_binding_dict["time"] = 4
+	uniforms_binding_dict["position"] = 5
+	uniforms_binding_dict["rate"] = 6
+	uniforms_binding_dict["direction"] = 7
 
 	# Create the storage buffers
-	buffers[0] = rd.storage_buffer_create(priorities_bytes.size(), priorities_bytes)
-	buffers[1] = rd.storage_buffer_create(compute_bytes.size(), compute_bytes)
-	buffers[2] = rd.storage_buffer_create(target_bytes.size(), target_bytes)
-	buffers[3] = rd.storage_buffer_create(boids_bytes.size(), boids_bytes)
-	buffers[4] = rd.storage_buffer_create(position_bytes.size(), position_bytes)
-	buffers[5] = rd.storage_buffer_create(rate_bytes.size(), rate_bytes)
-	buffers[6] = rd.storage_buffer_create(direction_bytes.size(), direction_bytes)
+	for key in buffer_bytes_dict:
+		buffers_dict[key] = rd.storage_buffer_create(buffer_bytes_dict[key].size(), buffer_bytes_dict[key])
+		uniforms_dict[key] = RDUniform.new()
+		uniforms_dict[key].uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+		uniforms_dict[key].binding = uniforms_binding_dict[key]
+		uniforms_dict[key].add_id(buffers_dict[key])
+
+func __setup_compute_step() -> void:
+	buffer_bytes_dict["target"] = PackedVector3Array([data.target]).to_byte_array()
+	buffer_bytes_dict["time"] = PackedFloat32Array([dispatch_timer]).to_byte_array()
+	buffer_bytes_dict["position"] = PackedVector3Array(data.positions).to_byte_array()
+	buffer_bytes_dict["direction"] = PackedVector3Array(data.directions).to_byte_array()
+
+	# Update the storage buffers
+	for key in ["target", "time", "position", "direction"]:
+		rd.buffer_update(buffers_dict[key], 0, buffer_bytes_dict[key].size(), buffer_bytes_dict[key])
 
 func __compute_school() -> void:
-	# Create a uniform for each buffer
-	var uniforms:Array[RDUniform] = [];
-	uniforms.resize(NUM_UNIF)
-	for i in NUM_UNIF:
-		uniforms[i] = RDUniform.new()
-		uniforms[i].uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
-		uniforms[i].binding = i # this needs to match the "binding" in the shader file
-		uniforms[i].add_id(buffers[i])
-	
 	# the last parameter needs to match the "set" in the shader file
-	var set_id_0:RID = rd.uniform_set_create([uniforms[0], uniforms[1], uniforms[2], uniforms[3]], shader, 0)
-	var set_id_1:RID = rd.uniform_set_create([uniforms[4], uniforms[5], uniforms[6]], shader, 1)
+	var set_id_0:RID = rd.uniform_set_create([uniforms_dict["prior"],
+											uniforms_dict["compute"], 
+											uniforms_dict["target"], 
+											uniforms_dict["boids"], 
+											uniforms_dict["time"]]
+											, shader, 0)
+	var set_id_1:RID = rd.uniform_set_create([uniforms_dict["position"], 
+											uniforms_dict["rate"],
+											uniforms_dict["direction"]]
+											, shader, 1)
 	
 	var compute_list := rd.compute_list_begin()
 	rd.compute_list_bind_compute_pipeline(compute_list, pipeline)
@@ -91,16 +105,16 @@ func __compute_school() -> void:
 	# dispatch vector will be multiplied by the layout vector in shader for total calls
 	rd.compute_list_dispatch(compute_list, 1, 1, 1) # one dispatch
 	rd.compute_list_end()
-	
+	dispatch_timer = 0.0;
 	rd.submit()
 	rd.sync()
 	
 	# Read back the data from the buffer
-	var new_pos_bytes:PackedByteArray = rd.buffer_get_data(buffers[4])
+	var new_pos_bytes:PackedByteArray = rd.buffer_get_data(buffers_dict["position"])
 	var new_pos:PackedVector3Array = new_pos_bytes.to_vector3_array()
-	var new_rate_bytes:PackedByteArray = rd.buffer_get_data(buffers[5])
+	var new_rate_bytes:PackedByteArray = rd.buffer_get_data(buffers_dict["rate"])
 	var new_rate:PackedFloat32Array = new_rate_bytes.to_float32_array()
-	var new_dir_bytes:PackedByteArray = rd.buffer_get_data(buffers[6])
+	var new_dir_bytes:PackedByteArray = rd.buffer_get_data(buffers_dict["direction"])
 	#print(new_dir_bytes.size())
 	var new_dir:PackedVector3Array = new_dir_bytes.to_vector3_array()
 	#print(new_dir.size())
@@ -138,7 +152,7 @@ func _ready() -> void:
 		# add fish to data
 		data.positions[i] = location
 		data.mask[i] = 1.0
-		data.boids[i] = Vector3(1.0, 1.0, 1.5)
+		data.boids[i] = Vector3(1.0, 1.0, 1.8)
 		data.priorites[i] = 1.0
 		data.directions[i] = direction # forward direction
 		data.rates[i] = rate
@@ -148,6 +162,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	data.target = target.position
+	dispatch_timer += delta
 	__setup_compute_step()
 	__compute_school()
 
@@ -157,5 +172,5 @@ func _exit_tree() -> void:
 		return
 	else:
 		if pipeline: rd.free_rid(pipeline)
-	for i in NUM_UNIF:
-		rd.free_rid(buffers[i])
+	for key in buffers_dict:
+		rd.free_rid(buffers_dict[key])
