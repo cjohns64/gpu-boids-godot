@@ -15,7 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="GPU-FishSchools"
-run/main_scene="uid://cu58x2dq2j5en"
+run/main_scene="uid://ba68gd22t4526"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 

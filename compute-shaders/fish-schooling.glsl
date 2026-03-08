@@ -2,7 +2,7 @@
 #version 450
 
 // number of fish in dispatch, size must be a power of 2 but not all elements need to contain a fish
-#define ARRAY_LEN 512
+#define ARRAY_LEN 1024
 // Invocations in the (x, y, z) dimension
 layout(local_size_x = ARRAY_LEN, local_size_y = 1, local_size_z = 1) in;
 

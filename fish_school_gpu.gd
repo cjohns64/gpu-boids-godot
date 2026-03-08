@@ -1,9 +1,10 @@
 extends MultiMeshInstance3D
 
 const FISH_SCHOOLING = preload("res://compute-shaders/fish-schooling.glsl")
+# inital distrbution of fish
 @export var dist:Vector3 = Vector3(8.0, 5.0, 5.0)
 var half_dist:Vector3
-@onready var target: Node3D = $"../Target"
+@onready var world_scene: Node = $"../World_Scene"
 
 # Reference to the active Rendering Device
 # This is Godot's abstraction of GLSL, objects will interface with it using RIDs
@@ -12,8 +13,10 @@ var rd:RenderingDevice
 var shader:RID
 # Reference to the compute pipeline
 var pipeline:RID
+# stores the time between compute shader dispaches
 var dispatch_timer:float = 0.0
 
+# data structure for host side data
 class FishData:
 	var priorites:Array[float]
 	var mask:Array[float]
@@ -31,6 +34,7 @@ class FishData:
 		boids.resize(size)
 		rates.resize(size)
 
+# host side fish data object
 var data:FishData
 # storage buffers
 var buffer_bytes_dict:Dictionary[String, PackedByteArray] = {}
@@ -41,6 +45,7 @@ var uniforms_dict:Dictionary[String, RDUniform] = {}
 # uniform binding list
 var uniforms_binding_dict:Dictionary[String, int] = {}
 
+# initalize compute shader parameters
 func __init_compute() -> void:
 	# Setup the reference to the Rendering Device
 	rd = RenderingServer.create_local_rendering_device()
@@ -75,6 +80,7 @@ func __init_compute() -> void:
 		uniforms_dict[key].binding = uniforms_binding_dict[key]
 		uniforms_dict[key].add_id(buffers_dict[key])
 
+# prepare compute shader to run
 func __setup_compute_step() -> void:
 	buffer_bytes_dict["target"] = PackedVector3Array([data.target]).to_byte_array()
 	buffer_bytes_dict["time"] = PackedFloat32Array([dispatch_timer]).to_byte_array()
@@ -85,6 +91,7 @@ func __setup_compute_step() -> void:
 	for key in ["target", "time", "position", "direction"]:
 		rd.buffer_update(buffers_dict[key], 0, buffer_bytes_dict[key].size(), buffer_bytes_dict[key])
 
+# run compute shader
 func __compute_school() -> void:
 	# the last parameter needs to match the "set" in the shader file
 	var set_id_0:RID = rd.uniform_set_create([uniforms_dict["prior"],
@@ -105,19 +112,19 @@ func __compute_school() -> void:
 	# dispatch vector will be multiplied by the layout vector in shader for total calls
 	rd.compute_list_dispatch(compute_list, 1, 1, 1) # one dispatch
 	rd.compute_list_end()
-	dispatch_timer = 0.0;
+	dispatch_timer = 0.0; # dispatch was just launched 0 the timer
 	rd.submit()
 	rd.sync()
 	
-	# Read back the data from the buffer
+	# Read back the data from the buffers
 	var new_pos_bytes:PackedByteArray = rd.buffer_get_data(buffers_dict["position"])
 	var new_pos:PackedVector3Array = new_pos_bytes.to_vector3_array()
 	var new_rate_bytes:PackedByteArray = rd.buffer_get_data(buffers_dict["rate"])
 	var new_rate:PackedFloat32Array = new_rate_bytes.to_float32_array()
 	var new_dir_bytes:PackedByteArray = rd.buffer_get_data(buffers_dict["direction"])
-	#print(new_dir_bytes.size())
 	var new_dir:PackedVector3Array = new_dir_bytes.to_vector3_array()
-	#print(new_dir.size())
+	
+	# update multimesh instances to the computed positions and directions
 	for i in range(self.multimesh.instance_count):
 		var transform_matrix:Transform3D = self.multimesh.get_instance_transform(i)
 		# move to new position
@@ -140,7 +147,7 @@ func _ready() -> void:
 	# place the initial distrubition of fish
 	half_dist = dist / 2.0
 	for i in range(self.multimesh.instance_count):
-		var transform_matrix = Transform3D()
+		var transform_matrix := Transform3D()
 		var location:Vector3 = Vector3(randf() * dist.x - half_dist.x, randf() * dist.y - half_dist.y, randf() * dist.z - half_dist.z)
 		#var location := Vector3.UP
 		var direction:Vector3 = Vector3(randf() - 0.5, randf() - 0.5, randf() - 0.5)
@@ -161,8 +168,12 @@ func _ready() -> void:
 	__init_compute()
 
 func _physics_process(delta: float) -> void:
-	data.target = target.position
+	world_scene.set_instance_count_text(self.multimesh.instance_count)
+	# update host data structure with current target position
+	data.target = world_scene.target.position
+	# add delta time to timer value
 	dispatch_timer += delta
+	# run compute shader
 	__setup_compute_step()
 	__compute_school()
 

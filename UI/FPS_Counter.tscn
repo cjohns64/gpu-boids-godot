@@ -21,7 +21,7 @@ anchor_right = 1.0
 offset_left = -138.0
 offset_top = 4.0
 offset_right = -4.0
-offset_bottom = 63.0
+offset_bottom = 83.0
 grow_horizontal = 0
 size_flags_vertical = 3
 
@@ -60,3 +60,16 @@ text = "ms:"
 layout_mode = 2
 size_flags_horizontal = 10
 text = "0.0"
+
+[node name="HBoxContainer3" type="HBoxContainer" parent="Background/VBoxContainer" unique_id=1745900840]
+layout_mode = 2
+
+[node name="MS-Label" type="Label" parent="Background/VBoxContainer/HBoxContainer3" unique_id=1517783408]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "#:"
+
+[node name="instance_count" type="Label" parent="Background/VBoxContainer/HBoxContainer3" unique_id=1213686632]
+layout_mode = 2
+size_flags_horizontal = 10
+text = "0"
