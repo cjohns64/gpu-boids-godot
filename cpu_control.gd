@@ -22,7 +22,7 @@ func _ready() -> void:
 		self.multimesh.set_instance_custom_data(i, Color(rate, randf(), randf(), randf()))
 
 # run an update each physics tick
-func _physics_process(delta: float) -> void:
+func _process(delta: float) -> void:
 	world_scene.set_instance_count_text(self.multimesh.instance_count)
 	__update_instances(delta)
 

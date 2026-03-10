@@ -4,6 +4,7 @@ extends Node
 @onready var target: Node3D = $Target
 @export var radius:float = 5.0
 var theta:float = 0.0
+var instance_count:Array[int] = [0]
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	target.position = Vector3(radius, 0.0, 0.0)

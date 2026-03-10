@@ -110,7 +110,7 @@ func __compute_school() -> void:
 	rd.compute_list_bind_uniform_set(compute_list, set_id_0, 0)
 	rd.compute_list_bind_uniform_set(compute_list, set_id_1, 1)
 	# dispatch vector will be multiplied by the layout vector in shader for total calls
-	rd.compute_list_dispatch(compute_list, 1, 1, 1) # one dispatch
+	rd.compute_list_dispatch(compute_list, 8, 1, 1) # one dispatch
 	rd.compute_list_end()
 	dispatch_timer = 0.0; # dispatch was just launched 0 the timer
 	rd.submit()
@@ -167,7 +167,7 @@ func _ready() -> void:
 	# setup compute shader for calculating boids motion
 	__init_compute()
 
-func _physics_process(delta: float) -> void:
+func _process(delta: float) -> void:
 	world_scene.set_instance_count_text(self.multimesh.instance_count)
 	# update host data structure with current target position
 	data.target = world_scene.target.position
