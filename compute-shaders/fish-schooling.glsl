@@ -2,7 +2,7 @@
 #version 450
 
 // number of fish in dispatch, size must be a power of 2 but not all elements need to contain a fish
-#define ARRAY_LEN 256
+#define ARRAY_LEN 1024
 // Invocations in the (x, y, z) dimension
 layout(local_size_x = ARRAY_LEN, local_size_y = 1, local_size_z = 1) in;
 
@@ -105,11 +105,6 @@ void main() {
         barrier(); // wait for all threads
     }
     
-    // if (!mask_buffer.compute_mask[gl_GlobalInvocationID.x]) {
-    //     // don't compute this fish if it is masked
-    //     return;
-    // }
-
     // normalize
     if (gl_GlobalInvocationID.x == 0) {
         sum_pos[0] = sum_pos[0] / float(ARRAY_LEN);
@@ -160,18 +155,7 @@ void main() {
     curr_dir.x = dir_buf.direction[gl_GlobalInvocationID.x].x;
     curr_dir.y = dir_buf.direction[gl_GlobalInvocationID.x].y;
     curr_dir.z = dir_buf.direction[gl_GlobalInvocationID.x].z;
-    vec3 new_velocity = curr_dir * (1.0 - time_buffer.delta_time * 1.0) + target_dir * (time_buffer.delta_time * 1.0);
-    // float current_rato = 2.0;
-    // float GdotC = dot(goal_dir, curr_dir);
-    // if (GdotC == -1.0){
-    //     new_dir = normalize(current_rato * normalize(curr_dir) + vec3(1.0, 0.0, 0.0));
-    // }
-    // else {
-    //     // get perpendicular component
-    //     // turn by amount in that direction
-    //     vec3 projection =  (GdotC / dot(goal_dir, goal_dir) ) * goal_dir;
-    //     new_dir = normalize(current_rato * normalize(curr_dir) + normalize(curr_dir - projection));
-    // }
+    vec3 new_velocity = normalize(curr_dir * (1.0 - time_buffer.delta_time * 1.0) + target_dir * (time_buffer.delta_time * 1.0));
 
     // set direction to point towards result
     dir_buf.direction[gl_GlobalInvocationID.x].x = new_velocity.x;
@@ -181,5 +165,4 @@ void main() {
     position_buffer.position[gl_GlobalInvocationID.x].x = position_buffer.position[gl_GlobalInvocationID.x].x + new_velocity.x * time_buffer.delta_time;
     position_buffer.position[gl_GlobalInvocationID.x].y = position_buffer.position[gl_GlobalInvocationID.x].y + new_velocity.y * time_buffer.delta_time;
     position_buffer.position[gl_GlobalInvocationID.x].z = position_buffer.position[gl_GlobalInvocationID.x].z + new_velocity.z * time_buffer.delta_time;
-
 }

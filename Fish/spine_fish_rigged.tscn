@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://csbg3u87hxm8x"]
+
+[ext_resource type="PackedScene" uid="uid://dh6ymrhpogktj" path="res://assets/SpineFish_Rigged.glb" id="1_pqfv3"]
+[ext_resource type="Script" uid="uid://dmjvqrdoyqd1d" path="res://Fish/spine_fish_rigged_ctrl.gd" id="2_s1w0t"]
+
+[node name="SpineFish_Rigged" unique_id=422899206 instance=ExtResource("1_pqfv3")]
+script = ExtResource("2_s1w0t")
+
+[node name="Skeleton3D" parent="Armature" parent_id_path=PackedInt32Array(1794515780) index="0" unique_id=1997665988]
+bones/1/rotation = Quaternion(0.001659623, -0.029823117, 0.0013989718, 0.99955285)
+bones/2/rotation = Quaternion(0.005693479, -0.043246225, 0.13040201, 0.9905012)
+bones/3/rotation = Quaternion(0.00569348, -0.043246225, 0.13040204, 0.9905012)
+bones/4/rotation = Quaternion(0.020352537, 0.1779992, -0.105288334, 0.9781699)

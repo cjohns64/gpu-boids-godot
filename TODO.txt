@@ -1,0 +1,7 @@
+- fix multimesh instance disappearing bug (transform application?)
+- multiple dispatches
+- work with non-power-of-two counts
+- spatial partitioning on GPU
+- blend shape interpolation system
+- avoidance
+- avoid collisions

@@ -1,6 +1,7 @@
 extends MultiMeshInstance3D
 
 const FISH_SCHOOLING = preload("res://compute-shaders/fish-schooling.glsl")
+const SCHOOL_SIZE:int = 512 # should match value in glsl file!
 # inital distrbution of fish
 @export var dist:Vector3 = Vector3(8.0, 5.0, 5.0)
 var half_dist:Vector3
@@ -47,6 +48,7 @@ var uniforms_binding_dict:Dictionary[String, int] = {}
 
 # initalize compute shader parameters
 func __init_compute() -> void:
+	#https://github.com/godotengine/godot/issues/108847
 	# Setup the reference to the Rendering Device
 	rd = RenderingServer.create_local_rendering_device()
 	# Load GLSL shader
@@ -110,7 +112,7 @@ func __compute_school() -> void:
 	rd.compute_list_bind_uniform_set(compute_list, set_id_0, 0)
 	rd.compute_list_bind_uniform_set(compute_list, set_id_1, 1)
 	# dispatch vector will be multiplied by the layout vector in shader for total calls
-	rd.compute_list_dispatch(compute_list, 8, 1, 1) # one dispatch
+	rd.compute_list_dispatch(compute_list, ceili(float(multimesh.instance_count) / float(SCHOOL_SIZE)), 1, 1) # one dispatch
 	rd.compute_list_end()
 	dispatch_timer = 0.0; # dispatch was just launched 0 the timer
 	rd.submit()
@@ -124,13 +126,18 @@ func __compute_school() -> void:
 	var new_dir_bytes:PackedByteArray = rd.buffer_get_data(buffers_dict["direction"])
 	var new_dir:PackedVector3Array = new_dir_bytes.to_vector3_array()
 	
+	#for i in range(len(new_pos)):
+		#if i == SCHOOL_SIZE: printraw("\n--------\n")
+		#printraw("<%f,%f,%f>, " % [new_pos[i].x, new_pos[i].y, new_pos[i].z])
 	# update multimesh instances to the computed positions and directions
-	for i in range(self.multimesh.instance_count):
+	for i in range(len(new_pos)):
 		var transform_matrix:Transform3D = self.multimesh.get_instance_transform(i)
-		# move to new position
-		transform_matrix = transform_matrix.translated(new_pos[i] - data.positions[i])
 		# look at new pointing direction
-		transform_matrix = transform_matrix.looking_at(new_dir[i] + data.positions[i], Vector3.UP, true)
+		if new_dir[i] != Vector3.ZERO:
+			transform_matrix = transform_matrix.looking_at(new_dir[i] + transform_matrix.origin, Vector3.UP, true) 
+		# move to new position
+		if data.positions[i] != new_pos[i]:
+			transform_matrix = transform_matrix.translated(new_pos[i] - data.positions[i])
 		self.multimesh.set_instance_transform(i, transform_matrix)
 		# update position, rate, and direction
 		data.positions[i] = new_pos[i]
