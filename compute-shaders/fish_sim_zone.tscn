@@ -1,6 +1,0 @@
-[gd_scene format=3 uid="uid://bqqejdmq0m3p2"]
-
-[ext_resource type="Script" uid="uid://cppgp1djvrqii" path="res://compute-shaders/fish_sim_zone.gd" id="1_xtyqe"]
-
-[node name="fish-sim-zone" type="Node3D" unique_id=2142835572]
-script = ExtResource("1_xtyqe")

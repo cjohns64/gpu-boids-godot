@@ -1,4 +1,6 @@
 // NOTE: Shader automatically converted from Godot Engine 4.5.1.stable's StandardMaterial3D.
+// However, all code except for the last line in the vertex function was made for this project
+// Godot automatically converted the fragment shader and the UV coordinates for the vertex shader
 
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_disabled, diffuse_burley, specular_schlick_ggx;
@@ -24,15 +26,16 @@ uniform vec3 uv1_offset;
 uniform vec3 uv2_scale;
 uniform vec3 uv2_offset;
 
+// rescale the time input to change default animation speed
+// this is NOT the value for instance-specific animation data
 uniform float time_scale;
 
 void vertex() {
 	vec3 disp = vec3(0, 0, 0);
-
-	// control rate by acceleration
-	//float rate = 2.0; // slow swim: 2.0 -> fast swim: 20.0
+    // define a body length for mask and rotations
 	float body = (VERTEX.z + 0.9);
 	// set speed from 25% - 125% of regular speed
+    // INSTANCE_CUSTOM contains the swim rate of the current instance as well as the phase offset
 	float T = (TIME * (0.25 + INSTANCE_CUSTOM.y) * time_scale) + (2.0 * PI * INSTANCE_CUSTOM.x);
 	// general equation for a rotation by an angle (T) about a pivot (u1)
 	//disp.x = VERTEX.x * (u1.x * u1.x * (1.0 - cos(T)) + cos(T))
@@ -65,8 +68,8 @@ void vertex() {
 	// side-to-side sine wave
 	float mask = smoothstep(0.0, 1.0, 1.0 - body);
 	disp.x += 0.5 * mask * (cos(T + 6.0 * body));
-	//VERTEX = (yrot + xsid + roll + yoff + swav) / 4.0;
-	VERTEX = disp / 4.0; // yrot, xsid, roll, yoff all contribute 1 full vertex displacement, need to normalize
+	// each animation contributes 1 full vertex displacement, so we need to normalize the result
+	VERTEX = disp / 4.0;
 	UV = UV * uv1_scale.xy + uv1_offset.xy;
 }
 

@@ -2,7 +2,7 @@ extends MultiMeshInstance3D
 
 const FISH_SCHOOLING = preload("res://compute-shaders/fish-schooling.glsl")
 const SCHOOL_SIZE:int = 512 # should match value in glsl file!
-# inital distrbution of fish
+# initial distribution of fish
 @export var dist:Vector3 = Vector3(8.0, 5.0, 5.0)
 var half_dist:Vector3
 @onready var world_scene: Node = $"../World_Scene"
@@ -14,7 +14,7 @@ var rd:RenderingDevice
 var shader:RID
 # Reference to the compute pipeline
 var pipeline:RID
-# stores the time between compute shader dispaches
+# stores the time between compute shader dispatches
 var dispatch_timer:float = 0.0
 
 # data structure for host side data
@@ -39,14 +39,14 @@ class FishData:
 var data:FishData
 # storage buffers
 var buffer_bytes_dict:Dictionary[String, PackedByteArray] = {}
-# storage buffer refernce IDs
+# storage buffer reference IDs
 var buffers_dict:Dictionary[String, RID] = {}
 # uniforms
 var uniforms_dict:Dictionary[String, RDUniform] = {}
 # uniform binding list
 var uniforms_binding_dict:Dictionary[String, int] = {}
 
-# initalize compute shader parameters
+# initialize compute shader parameters
 func __init_compute() -> void:
 	#https://github.com/godotengine/godot/issues/108847
 	# Setup the reference to the Rendering Device
@@ -126,9 +126,6 @@ func __compute_school() -> void:
 	var new_dir_bytes:PackedByteArray = rd.buffer_get_data(buffers_dict["direction"])
 	var new_dir:PackedVector3Array = new_dir_bytes.to_vector3_array()
 	
-	#for i in range(len(new_pos)):
-		#if i == SCHOOL_SIZE: printraw("\n--------\n")
-		#printraw("<%f,%f,%f>, " % [new_pos[i].x, new_pos[i].y, new_pos[i].z])
 	# update multimesh instances to the computed positions and directions
 	for i in range(len(new_pos)):
 		var transform_matrix:Transform3D = self.multimesh.get_instance_transform(i)
@@ -151,7 +148,7 @@ func __compute_school() -> void:
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	data = FishData.new(self.multimesh.instance_count)
-	# place the initial distrubition of fish
+	# place the initial distribution of fish
 	half_dist = dist / 2.0
 	for i in range(self.multimesh.instance_count):
 		var transform_matrix := Transform3D()

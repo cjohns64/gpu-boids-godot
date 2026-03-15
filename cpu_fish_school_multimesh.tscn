@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://cve6ofgifw1vf"]
 
 [ext_resource type="ArrayMesh" uid="uid://3vppodfrxxox" path="res://Shaders/Fish_Mesh_LP_shader.tres" id="1_t613r"]
-[ext_resource type="Script" uid="uid://bv83a45ax0hsj" path="res://cpu_control.gd" id="2_38u5n"]
+[ext_resource type="Script" uid="uid://bv83a45ax0hsj" path="res://cpu_control_multimesh.gd" id="2_38u5n"]
 
 [sub_resource type="MultiMesh" id="MultiMesh_aqk2v"]
 transform_format = 1

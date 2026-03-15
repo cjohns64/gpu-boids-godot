@@ -7,8 +7,10 @@ var started:bool = false
 func play_anim(_rate:float) -> void:
 	self.rate = _rate + randf()
 	started = true
+	# start skeletal animation
 	animation_player.play("ArmatureAction", -1, _rate, false)
 
 func _process(delta: float) -> void:
+	# resart skeletal animation if it is done playing
 	if not animation_player.is_playing() and started:
 		animation_player.play("ArmatureAction", -1, self.rate, false)

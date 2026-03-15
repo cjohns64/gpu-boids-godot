@@ -89,7 +89,6 @@ void main() {
     for (uint x=4; x<=ARRAY_LEN; x*=2) {
         // shuffle pos and dir
         // calculate the shuffle index for this thread
-        // uint toIndex = (gl_GlobalInvocationID.x + x)%(2*x) + (2*x)*(int(gl_GlobalInvocationID.x/(2*x)));
         uint toIndex = gl_GlobalInvocationID.x / 2;
         // get sum values
         vec3 pv1 = sum_pos[gl_GlobalInvocationID.x];
@@ -155,6 +154,8 @@ void main() {
     curr_dir.x = dir_buf.direction[gl_GlobalInvocationID.x].x;
     curr_dir.y = dir_buf.direction[gl_GlobalInvocationID.x].y;
     curr_dir.z = dir_buf.direction[gl_GlobalInvocationID.x].z;
+    // linear interpolation between current direction and goal direction, limited by delta time
+    // this prevents instantaneous rotations
     vec3 new_velocity = normalize(curr_dir * (1.0 - time_buffer.delta_time * 1.0) + target_dir * (time_buffer.delta_time * 1.0));
 
     // set direction to point towards result

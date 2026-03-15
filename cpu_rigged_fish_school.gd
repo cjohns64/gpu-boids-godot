@@ -11,7 +11,7 @@ var half_dist:Vector3
 @export var instance_count:int = 1024
 var fish_nodes:Array[Node3D] = []
 
-# initalize all fish
+# initialize all fish
 func _ready() -> void:
 	fish_nodes.resize(instance_count)
 	for i in range(instance_count):
@@ -52,7 +52,7 @@ func __update_instances(delta: float) -> void:
 		var cohesion:Vector3 = boids_cohesion * (avg_pos - fish_nodes[i].transform.origin).normalized()
 		var alignment:Vector3 = boids_alignment * avg_dir
 		var seperation:Vector3 = Vector3.ZERO
-		# calculate seperation from all other fish within test radius
+		# calculate separation from all other fish within test radius
 		for j in range(instance_count):
 			if i == j:
 				continue # skip this fish
