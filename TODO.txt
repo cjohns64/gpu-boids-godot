@@ -1,8 +1,5 @@
-- fix multimesh instance disappearing bug (transform application?)
-- multiple dispatches
 - work with non-power-of-two counts
 - spatial partitioning on GPU
 - blend shape interpolation system
 - avoidance
 - avoid collisions
-- avg_dir & avg_pos reduction in separate kernel, pass values into boids kernel. Enables multiple dispatches per school
