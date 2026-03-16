@@ -138,7 +138,13 @@ void main() {
             separation += separation_vector / (separation_len + 0.001);
         }
     }
-    separation =  boids_buffer.coeff[gl_GlobalInvocationID.x].z * normalize(separation) * mask_buffer.compute_mask[gl_GlobalInvocationID.x];
+    if (dot(separation, separation) > 1.0) {
+        // normalize separation if greater then unit length
+        separation =  boids_buffer.coeff[gl_GlobalInvocationID.x].z * normalize(separation) * mask_buffer.compute_mask[gl_GlobalInvocationID.x];
+    }
+    else {
+        separation =  boids_buffer.coeff[gl_GlobalInvocationID.x].z * separation * mask_buffer.compute_mask[gl_GlobalInvocationID.x];
+    }
 
     // get direction to flow target
     vec3 target_dir = vec3(0.0, 0.0, 0.0);

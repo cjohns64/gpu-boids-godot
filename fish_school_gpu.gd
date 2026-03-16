@@ -1,6 +1,8 @@
 extends MultiMeshInstance3D
 
 const FISH_SCHOOLING = preload("res://compute-shaders/fish-schooling.glsl")
+#const SPINE_FISH_LP = preload("res://Fish/spine_fish_lp.tscn")
+const NUMBER:int = 1024
 const SCHOOL_SIZE:int = 512 # should match value in glsl file!
 # initial distribution of fish
 @export var dist:Vector3 = Vector3(8.0, 5.0, 5.0)
@@ -16,6 +18,7 @@ var shader:RID
 var pipeline:RID
 # stores the time between compute shader dispatches
 var dispatch_timer:float = 0.0
+#var fish_array:Array[Node3D] = []
 
 # data structure for host side data
 class FishData:
@@ -48,7 +51,6 @@ var uniforms_binding_dict:Dictionary[String, int] = {}
 
 # initialize compute shader parameters
 func __init_compute() -> void:
-	#https://github.com/godotengine/godot/issues/108847
 	# Setup the reference to the Rendering Device
 	rd = RenderingServer.create_local_rendering_device()
 	# Load GLSL shader
@@ -112,7 +114,7 @@ func __compute_school() -> void:
 	rd.compute_list_bind_uniform_set(compute_list, set_id_0, 0)
 	rd.compute_list_bind_uniform_set(compute_list, set_id_1, 1)
 	# dispatch vector will be multiplied by the layout vector in shader for total calls
-	rd.compute_list_dispatch(compute_list, ceili(float(multimesh.instance_count) / float(SCHOOL_SIZE)), 1, 1) # one dispatch
+	rd.compute_list_dispatch(compute_list, ceili(float(NUMBER) / float(SCHOOL_SIZE)), 1, 1) # one dispatch
 	rd.compute_list_end()
 	dispatch_timer = 0.0; # dispatch was just launched 0 the timer
 	rd.submit()
@@ -129,6 +131,7 @@ func __compute_school() -> void:
 	# update multimesh instances to the computed positions and directions
 	for i in range(len(new_pos)):
 		var transform_matrix:Transform3D = self.multimesh.get_instance_transform(i)
+		#var transform_matrix:Transform3D = fish_array[i].transform
 		# look at new pointing direction
 		if new_dir[i] != Vector3.ZERO:
 			transform_matrix = transform_matrix.looking_at(new_dir[i] + transform_matrix.origin, Vector3.UP, true) 
@@ -136,6 +139,7 @@ func __compute_school() -> void:
 		if data.positions[i] != new_pos[i]:
 			transform_matrix = transform_matrix.translated(new_pos[i] - data.positions[i])
 		self.multimesh.set_instance_transform(i, transform_matrix)
+		#fish_array[i].transform = transform_matrix
 		# update position, rate, and direction
 		data.positions[i] = new_pos[i]
 		data.rates[i] = new_rate[i]
@@ -147,16 +151,22 @@ func __compute_school() -> void:
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	data = FishData.new(self.multimesh.instance_count)
+	#fish_array.resize(NUMBER)
+	data = FishData.new(NUMBER)
 	# place the initial distribution of fish
 	half_dist = dist / 2.0
-	for i in range(self.multimesh.instance_count):
+	self.multimesh.instance_count = NUMBER
+	for i in range(NUMBER):
 		var transform_matrix := Transform3D()
 		var location:Vector3 = Vector3(randf() * dist.x - half_dist.x, randf() * dist.y - half_dist.y, randf() * dist.z - half_dist.z)
 		#var location := Vector3.UP
 		var direction:Vector3 = Vector3(randf() - 0.5, randf() - 0.5, randf() - 0.5)
 		transform_matrix = transform_matrix.looking_at(direction + location, Vector3.UP, true)
 		transform_matrix = transform_matrix.translated(location)
+		#var obj:Node3D = SPINE_FISH_LP.instantiate()
+		#self.add_child(obj)
+		#fish_array[i] = obj
+		#obj.transform = transform_matrix
 		self.multimesh.set_instance_transform(i, transform_matrix)
 		var rate:float = 0.5
 		self.multimesh.set_instance_custom_data(i, Color(rate, randf(), randf(), randf()))
@@ -172,7 +182,7 @@ func _ready() -> void:
 	__init_compute()
 
 func _process(delta: float) -> void:
-	world_scene.set_instance_count_text(self.multimesh.instance_count)
+	world_scene.set_instance_count_text(NUMBER)
 	# update host data structure with current target position
 	data.target = world_scene.target.position
 	# add delta time to timer value
