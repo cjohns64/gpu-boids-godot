@@ -8,7 +8,7 @@ var boids_alignment:float = 1.0
 var boids_seperation:float = 1.8
 @export var dist:Vector3 = Vector3(8.0, 5.0, 5.0)
 var half_dist:Vector3
-@export var instance_count:int = 1024
+@export var instance_count:int = 2048
 var fish_nodes:Array[Node3D] = []
 
 # initialize all fish
@@ -29,7 +29,7 @@ func _ready() -> void:
 		fish.play_anim(rate)
 
 # run an update each physics tick
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	world_scene.set_instance_count_text(instance_count)
 	__update_instances(delta)
 

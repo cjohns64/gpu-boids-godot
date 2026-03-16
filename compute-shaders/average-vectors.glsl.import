@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://b3k355hiexu0r"
+path="res://.godot/imported/average-vectors.glsl-7354c67da45ceb2fbf0370ef1b9bc6c7.res"
+
+[deps]
+
+source_file="res://compute-shaders/average-vectors.glsl"
+dest_files=["res://.godot/imported/average-vectors.glsl-7354c67da45ceb2fbf0370ef1b9bc6c7.res"]
+
+[params]
+
